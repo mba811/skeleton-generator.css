@@ -1,0 +1,51 @@
+#content {
+  // Tell the skeleton file to generate skeletons for the following
+  // book-specific kinds of types (classes).
+  // For example, this book defines several custom notes (features):
+  // a `.how-to` note and a `.understanding` note.
+  .kinds(note) { @return: 'how-to', 'understanding'; }
+
+  #note {
+    // **NOTE:** The arguments "mean" any note in any part (preface, chapter, etc) get this styling
+    .style(any; @part) { background-color: yellow; }
+
+    // ## Example: Custom Notes (aka "features")
+    #title {
+      .style('how-to'; @part) { background-color: pink; content: 'How-To'; }
+      .style('understanding'; @part) { background-color: purple; content: 'Understanding'; }
+    }
+  }
+
+  #example {
+    .style(any; @part) { background-color: green; }
+  }
+
+  #exercise {
+    .style(any; @part) { background-color: silver; }
+  }
+
+  #figure {
+    .style(any; @part) { background-color: blue; }
+    .caption(any; @part) { color: blue; }
+
+    // Complex example: a figure inside a `how-to` note
+    .style(any; @part; note; 'how-to') {
+      content: 'how-to>figure TEST1';
+    }
+    // Complex example: a figure inside a `how-to` note inside an example
+    // (think: `example > note.how-to > figure`)
+    .style(any; @part; example; note; 'how-to') {
+      content: 'example>note.how-to>figure TEST2';
+    }
+    // Complex example: a figure inside an `understanding` note inside an example
+    // (think: `note.understanding > example > figure`)
+    .style(any; @part; note; 'understanding'; example) {
+      content: 'note.understanding>example>figure TEST3';
+    }
+
+  }
+
+  #para { .style(any; @part) { color: black; } }
+  #term { .style(any; @part) { font-weight: bold; } }
+  // ... More types removed for brevity
+}

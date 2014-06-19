@@ -1,0 +1,47 @@
+@Example:   'Example';
+@Exercise:  'Exercise';
+@Figure:    'Figure';
+@Note:      'Note';
+
+#content {
+
+  // **NOTE:** the `any` is **only** used to make the generated CSS easier to read.
+  // it could have just as easily been `@kind` but would have resulted
+  // in much more verbose CSS.
+  #note {
+    .counters(any; @part) { counter-increment: note; }
+    .number(any; @part) { #part>.content-counter(@part; @Note ' '; counter(note)); }
+  }
+
+  #example {
+    .counters(any; @part) { counter-increment: example; }
+    .number(any; @part) { #part>.content-counter(@part; @Example ' '; counter(example)); }
+  }
+
+  #exercise {
+    .counters(any; @part) { counter-increment: exercise; }
+    // do NOT increment Exercises inside an example
+    .counters(any; @part; example) { counter-increment: none; }
+
+    .number(any; @part) { #part>.content-counter(@part; @Exercise ' '; counter(exercise)); }
+    // do NOT number Exercises inside an example
+    .number(any; @part; example) { content: @Exercise }
+  }
+
+  #figure {
+    .counters(any; @part) { counter-reset: subfigure; }
+    // Do not reset the subfigure counter when this is a subfigure
+    .counters(any; @part; figure) { counter-reset: none; }
+
+    .counters(any; @part) { counter-increment: figure; counter-reset: subfigure; }
+    .counters(any; @part; figure)  { counter-increment: subfigure; }
+
+    .number(any; @part) { #part>.content-counter(@part; @Figure ' '; counter(figure)); }
+    // For subfigures add a letter representing the figure
+    .number(any; @part; figure) {
+      /* NOTE: The numbering includes the subfigure counter (ie Figure 4a) */
+      #part>.content-counter(@part; @Figure ' '; counter(figure) counter(subfigure, lower-alpha));
+    }
+  }
+  // ... More types removed for brevity
+}

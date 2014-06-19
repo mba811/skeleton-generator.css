@@ -1,0 +1,301 @@
+#skeleton {
+  #content {
+
+    // This namespace defines the following mixins:
+    //
+    // - `.children(@type)` : "returns" a list of valid child types
+    // - `.selector(@type; @depth; @part-contexts...)` : Generates the proper selector for this type
+    // - `.template(@type; @part-contexts...)` : generates the proper slots for this type
+
+
+    // Prune the permutations in the skeleton-generation code (so we do not run out of memory)
+    // by restricting the set of children
+    .x-root-types() {
+      // From http://cnx.org/eip-help/content
+      @return: section,
+                example,
+                // code,
+                // preformat,
+                quote,
+                para,
+                definition,
+                figure,
+                note,
+                // media,
+                list,
+                // table,
+                // rule,
+                // equation,
+                exercise;
+    }
+    // From http://cnx.org/eip-help/note
+    .x-noteish-types() {
+      @return: para,
+              term,
+              // cite,
+              // cite-title,
+              // foreign,
+              // emphasis,
+              // sub,
+              // sup,
+              // code,
+              // preformat,
+              quote,
+              // note,
+              list,
+              // media,
+              // footnote,
+              // link,
+              // newline,
+              // space,
+              definition,
+              example,
+              figure,
+              // table,
+              // rule,
+              // equation,
+              exercise;
+    }
+    // From http://cnx.org/eip-help/para
+    .x-inline-types() {
+      @return: term,
+               // cite,
+               // cite-title,
+               // foreign,
+               // emphasis,
+               // sub,
+               // sup,
+               // code,
+               // preformat,
+               quote,
+               // note,
+               list;
+               // media,
+               // footnote,
+               // link,
+               // newline,
+               // space,
+               // definition, TODO: Should this remain an inline type?
+               // example, TODO: Should these remain an inline type?
+               // figure,
+               // table,
+               // rule,
+               // equation,
+               // exercise;
+    }
+
+    //.children(@any)       { @return: none; } // by default, no children
+    .children(none)       { .x-root-types(); }  // The root types
+    .children(section)    { .x-root-types(); }
+    .children(example)    { .x-root-types(); }
+    .children(problem)    { .x-root-types(); }
+    .children(solution)   { .x-root-types(); }
+    .children(note)       { .x-noteish-types(); }
+    .children(quote)      { .x-noteish-types(); }
+    .children(para)       { .x-inline-types(); }
+    .children(term)       { .x-inline-types(); }
+    .children(meaning)    { .x-inline-types(); } // Might need to be x-noteish-types
+    .children(exercise)   { @return: problem, solution; }
+    .children(definition) { @return: term, meaning, example, /*seealso*/; }
+    .children(figure)     { @return: figure /* , media, table, code */; }
+    .children(list)       { @return: list-item; }
+    .children(list-item)  { .x-inline-types(); }
+
+
+    // These define the selector for the `@type`
+    // `.x-template-helper` will augment the selector with a class depending on the value of `@kind`
+    // For most elements the selector will be `[data-type="@{type}"]` but for some things
+    // like lists and figures it may be `figure` or `ol, ul`.
+    .selector(@type; @depth; @rest...) when (@type=section),
+                                                  (@type=example),
+                                                  (@type=exercise),
+                                                  (@type=problem),
+                                                  (@type=solution),
+                                                  (@type=note),
+                                                  (@type=definition),
+                                                  (@type=term),
+                                                  (@type=meaning) {
+      //[data-type="@{type}"] {
+      .@{type} {
+        .x-template-helper(@arguments...);
+      }
+    }
+    .selector(figure; @rest...) {
+      figure {
+        // debug-template-outer-figure: '@rest=' @rest;
+        .x-template-helper(figure; @rest...);
+      }
+    }
+    .selector(para; @rest...) {
+      p { .x-template-helper(para; @rest...); }
+    }
+    .selector(quote; @rest...) {
+      blockquote { .x-template-helper(quote; @rest...); }
+    }
+    // Lists are special because they may contain a title. If they have a title
+    // then there is a special wrapper div since `ol` and `ul` cannot contain a title
+    .selector(list; @rest...) {
+      ul, ol, [data-type='list'] {
+        .x-template-helper(list; @rest...);
+      }
+    }
+    .selector(list-item; @rest...) {
+      li { .x-template-helper(list-item; @rest...); }
+    }
+
+
+    // ## Slots inside Content
+    // These describe the stricture of slots **inside** a `type` of content.
+    //
+    // - for notes these would be the title and body
+    // - for figures these would be the caption and title
+    // - for exercises these would be the title, problem, solutions, and commentary
+    .template(example; @args...) {
+      #content>#example>.style(@args...);
+      #content>#example>.counters(@args...);
+
+      &::before {
+        #content>#example>.number(@args...);
+      }
+
+      //> [data-type='title'] {
+      > .title {
+        #content>#example>#title>.style(@args...);
+      }
+    }
+
+    .template(exercise; @args...) {
+      #content>#exercise>.style(@args...);
+      #content>#exercise>.counters(@args...);
+
+      &::before {
+        #content>#exercise>.number(@args...);
+      }
+
+      //> [data-type='title'] {
+      > .title {
+        #content>#exercise>#title>.style(@args...);
+      }
+    }
+
+    .template(problem; @args...) {
+      #content>#problem>.style(@args...);
+      #content>#problem>.counters(@args...);
+
+      &::before {
+        #content>#problem>.number(@args...);
+      }
+
+      //> [data-type='title'] {
+      > .title {
+        #content>#problem>#title>.style(@args...);
+      }
+    }
+
+    .template(solution; @args...) {
+      #content>#solution>.style(@args...);
+      #content>#solution>.counters(@args...);
+
+      &::before {
+        #content>#solution>.number(@args...);
+      }
+
+      //> [data-type='title'] {
+      > .title {
+        #content>#solution>#title>.style(@args...);
+      }
+    }
+
+    .template(figure; @args...) {
+      #content>#figure>.style(@args...);
+      #content>#figure>.counters(@args...);
+
+      //> [data-type='title'] {
+      > .title {
+        #content>#figure>#title>.style(@args...);
+      }
+
+      figcaption {
+        #content>#figure>.caption(@args...);
+        &::before { #content>#figure>.number(@args...); }
+      }
+    }
+
+    .template(note; @args...) {
+      #content>#note>.style(@args...);
+      #content>#note>.counters(@args...);
+
+      //> [data-type='title'] {
+      > .title {
+        #content>#note>#title>.style(@args...);
+      }
+
+      &::before {
+        #content>#note>.number(@args...);
+      }
+    }
+
+    .template(section; @args...) {
+      #content>#section>.style(@args...);
+      #content>#section>.counters(@args...);
+
+      &::before {
+        #content>#section>.number(@args...);
+      }
+
+      //> [data-type='title'] {
+      > .title {
+        #content>#section>#title>.style(@args...);
+      }
+    }
+
+    .template(para; @args...) {
+      #content>#para>.style(@args...);
+      #content>#para>.counters(@args...);
+
+      &::before {
+        #content>#para>.number(@args...);
+      }
+
+      //> [data-type='title'] {
+      > .title {
+        #content>#para>#title>.style(@args...);
+      }
+    }
+
+    .template(definition; @args...) { #content>#definition>.style(@args...); }
+    .template(term; @args...)       { #content>#term>.style(@args...); }
+
+    .template(meaning; @args...) {
+      #content>#meaning>.style(@args...);
+
+      //> [data-type='title'] {
+      > .title {
+        #content>#meaning>#title>.style(@args...);
+      }
+    }
+
+    .template(quote; @args...) {
+      #content>#quote>.style(@args...);
+
+      //> [data-type='title'] {
+      > .title {
+        #content>#quote>#title>.style(@args...);
+      }
+    }
+
+    .template(list; @args...) {
+      #content>#list>.style(@args...);
+
+      //> [data-type='title'] {
+      > .title {
+        #content>#list>#title>.style(@args...);
+      }
+    }
+
+    .template(list-item; @args...) {
+      #content>#list>#item>.style(@args...);
+    }
+
+  }
+}

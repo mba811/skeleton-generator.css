@@ -1,0 +1,76 @@
+@import 'content-templates';
+
+// This variable denotes the maximum length of `@contexts...`
+@contexts-max-depth: 2;
+
+#skeleton {
+
+  // Customize these for different elements
+  // These are the skeleton "snippet" describing the element and all the slots on it.
+  // .selector(@type; @depth; @kind; @part-and-contexts...) { }
+  // .template(      @type; @depth; @kind; @part-and-contexts...) { }
+
+  // makes a different selector if `@kind` is `any` or if it is anything else
+  .x-template-helper(@type; @depth; any; @part-and-contexts...) {
+    .template(@type; any; @part-and-contexts...);
+    // Recurse by appending the `@type` to the `@contexts...`
+    #skeleton>.build-children(@type; (@depth - 1); @part-and-contexts...; @type);
+  }
+  .x-template-helper(@type; @depth; @kind; @part-and-contexts...) when not (@kind = any) {
+    // `@kind` is a string but we need to un-string it to use it as a class name
+    @unstringed-kind: e(@kind);
+    &.@{unstringed-kind} {
+      .template(@type; @kind; @part-and-contexts...);
+      // Recurse by appending both the `@type` and `@kind` to the `@contexts...`
+      #skeleton>.build-children(@type; (@depth - 1); @part-and-contexts...; @type; @kind);
+    }
+  }
+
+  .x-helper-base-types(@depth; @part-and-contexts) { } // base case
+  .x-helper-base-types(@depth; @part-and-contexts; none) { } // base case
+  .x-helper-base-types(@depth; @part-and-contexts; @type; @rest...) {
+    #skeleton>#content>.selector(@type; @depth; any; @part-and-contexts...);
+
+    // Loop for any custom `@kind`s
+    #content>.kinds(@type);
+    @kinds: @return;
+    .x-helper-custom-types(@depth; @part-and-contexts; @type; @kinds...);
+
+    // recurse
+    .x-helper-base-types(@depth; @part-and-contexts; @rest...);
+  }
+
+  .x-helper-custom-types(@depth; @part-and-contexts; @type) { } // base case
+  .x-helper-custom-types(@depth; @part-and-contexts; @type; none) { } // base case
+  .x-helper-custom-types(@depth; @part-and-contexts; @type; @kind; @rest...) {
+    // debug-custom-types: @type-and-kind;
+    #skeleton>#content>.selector(@type; @depth; @kind; @part-and-contexts...);
+    // recurse
+    .x-helper-custom-types(@depth; @part-and-contexts; @type; @rest...);
+  }
+
+  .build-children(@type; 0;      @part-and-contexts...) { } // base case
+  .build-children(@type; @depth; @part-and-contexts...) when (@depth > 0) {
+
+    //debug-build-children: 'depth=' @depth 'contexts=' @part-and-contexts;
+    #skeleton>#content>.children(@type);
+    @content-base-types: @return;
+    .x-helper-base-types  (@depth; @part-and-contexts; @content-base-types...);
+  }
+
+}
+
+
+
+// Skeleton code
+.build-part(@part) {
+  // Use the `none` type for root elements
+  #skeleton>.build-children(none; (@contexts-max-depth + 1); @part);
+}
+// .preface,
+// .chapter,
+// .appendix { .build-part(any); }
+
+//.preface  { .build-part(preface); }
+.chapter  { .build-part(chapter); }
+//.appendix { .build-part(appendix); }

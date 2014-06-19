@@ -1,0 +1,5 @@
+{
+  "dependencies": {
+    "less": "git://github.com/philschatz/less.js#expand-args"
+  }
+}

@@ -1,0 +1,44 @@
+#content {
+
+  // A list of custom classes for this `@type` of content (or `none`)
+  .kinds    (@type) { @return: none; }
+
+  // ## Empty Defaults
+  // Include this mixin when defining mixins for each type of content
+  // to provide a no-op by default.
+  .x-inline-defaults() {
+    .style    (@kind; @part; @contexts...) { }
+  }
+  .x-has-title-defaults() {
+    #title {
+      .style  (@kind; @part; @contexts...) { }
+    }
+  }
+  .x-blockish-defaults() {
+    .x-inline-defaults();
+    .x-has-title-defaults();
+    .counters (@kind; @part; @contexts...) { }
+    .number   (@kind; @part; @contexts...) { }
+  }
+
+  #section  { .x-blockish-defaults(); }
+  #para     { .x-blockish-defaults(); }
+  #note     { .x-blockish-defaults(); }
+  #example  { .x-blockish-defaults(); }
+  #exercise { .x-blockish-defaults(); }
+  #problem  { .x-blockish-defaults(); }
+  #solution { .x-blockish-defaults(); }
+  #figure   {
+    .x-blockish-defaults();
+    .caption(@kind; @part; @contexts...) { }
+  }
+
+  #definition   { .x-inline-defaults(); }
+  #term         { .x-inline-defaults(); }
+  #meaning      { .x-inline-defaults(); .x-has-title-defaults(); }
+  #quote        { .x-inline-defaults(); .x-has-title-defaults(); }
+  #list         { .x-inline-defaults(); .x-has-title-defaults(); }
+  #list { #item { .x-inline-defaults(); } }
+
+  // ... More types removed for brevity
+}

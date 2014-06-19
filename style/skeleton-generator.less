@@ -1,0 +1,628 @@
+// Created by http://philschatz.com (in case a harvester picks this up)
+
+// To run this:
+// - download this file
+// - run `npm install git://github.com/philschatz/less.js#expand-args`
+// - run `./node_modules/.bin/lessc skeleton-generation.less`
+
+// Uncomment the .preface and .appendix lines to see why the @part is necessary.
+#part {
+  .content-counter(preface;  @before; @after) { content: @before @after; }
+  .content-counter(chapter;  @before; @after) { content: @before counter(chapter) '.' @after; }
+  .content-counter(appendix; @before; @after) { content: @before counter(appendix, upper-alpha) @after; }
+}
+
+@Example:   'Example';
+@Exercise:  'Exercise';
+@Figure:    'Figure';
+@Note:      'Note';
+
+
+// # Slots Code
+//
+// **NOTE:** These slots can be filled in by several files:
+//
+// - `base-content-slots.less` can fill in all the empty `.defaults` for slots
+// - `numbering-slots.less` can fill in all the `.counters` and `.numbering` slots
+// - `[BOOK_NAME]-slots.less` can fill in all the `.style` and `.title` slots
+
+
+
+
+
+
+// `base-content-slots.less`
+#content {
+
+  // A list of custom classes for this `@type` of content (or `none`)
+  .kinds    (@type) { @return: none; }
+
+  // ## Empty Defaults
+  // Include this mixin when defining mixins for each type of content
+  // to provide a no-op by default.
+  .x-inline-defaults() {
+    .style    (@kind; @part; @contexts...) { }
+  }
+  .x-has-title-defaults() {
+    #title {
+      .style  (@kind; @part; @contexts...) { }
+    }
+  }
+  .x-blockish-defaults() {
+    .x-inline-defaults();
+    .x-has-title-defaults();
+    .counters (@kind; @part; @contexts...) { }
+    .number   (@kind; @part; @contexts...) { }
+  }
+
+  #section  { .x-blockish-defaults(); }
+  #para     { .x-blockish-defaults(); }
+  #note     { .x-blockish-defaults(); }
+  #example  { .x-blockish-defaults(); }
+  #exercise { .x-blockish-defaults(); }
+  #problem  { .x-blockish-defaults(); }
+  #solution { .x-blockish-defaults(); }
+  #figure   {
+    .x-blockish-defaults();
+    .caption(@kind; @part; @contexts...) { }
+  }
+
+  #definition   { .x-inline-defaults(); }
+  #term         { .x-inline-defaults(); }
+  #meaning      { .x-inline-defaults(); .x-has-title-defaults(); }
+  #quote        { .x-inline-defaults(); .x-has-title-defaults(); }
+  #list         { .x-inline-defaults(); .x-has-title-defaults(); }
+  #list { #item { .x-inline-defaults(); } }
+
+  // ... More types removed for brevity
+}
+
+
+
+
+
+
+
+
+
+
+// `numbering-slots.less`
+#content {
+
+  // **NOTE:** the `any` is **only** used to make the generated CSS easier to read.
+  // it could have just as easily been `@kind` but would have resulted
+  // in much more verbose CSS.
+  #note {
+    .counters(any; @part) { counter-increment: note; }
+    .number(any; @part) { #part>.content-counter(@part; @Note ' '; counter(note)); }
+  }
+
+  #example {
+    .counters(any; @part) { counter-increment: example; }
+    .number(any; @part) { #part>.content-counter(@part; @Example ' '; counter(example)); }
+  }
+
+  #exercise {
+    .counters(any; @part) { counter-increment: exercise; }
+    // do NOT increment Exercises inside an example
+    .counters(any; @part; example) { counter-increment: none; }
+
+    .number(any; @part) { #part>.content-counter(@part; @Exercise ' '; counter(exercise)); }
+    // do NOT number Exercises inside an example
+    .number(any; @part; example) { content: @Exercise }
+  }
+
+  #figure {
+    .counters(any; @part) { counter-reset: subfigure; }
+    // Do not reset the subfigure counter when this is a subfigure
+    .counters(any; @part; figure) { counter-reset: none; }
+
+    .counters(any; @part) { counter-increment: figure; counter-reset: subfigure; }
+    .counters(any; @part; figure)  { counter-increment: subfigure; }
+
+    .number(any; @part) { #part>.content-counter(@part; @Figure ' '; counter(figure)); }
+    // For subfigures add a letter representing the figure
+    .number(any; @part; figure) {
+      /* NOTE: The numbering includes the subfigure counter (ie Figure 4a) */
+      #part>.content-counter(@part; @Figure ' '; counter(figure) counter(subfigure, lower-alpha));
+    }
+  }
+  // ... More types removed for brevity
+}
+
+
+
+
+
+
+// `[BOOK_NAME]-slots.less`
+
+#content {
+  // Tell the skeleton file to generate skeletons for the following
+  // book-specific kinds of types (classes).
+  // For example, this book defines several custom notes (features):
+  // a `.how-to` note and a `.understanding` note.
+  .kinds(note) { @return: 'how-to', 'understanding'; }
+
+  #note {
+    // **NOTE:** The arguments "mean" any note in any part (preface, chapter, etc) get this styling
+    .style(any; @part) { background-color: yellow; }
+
+    // ## Example: Custom Notes (aka "features")
+    #title {
+      .style('how-to'; @part) { background-color: pink; content: 'How-To'; }
+      .style('understanding'; @part) { background-color: purple; content: 'Understanding'; }
+    }
+  }
+
+  #example {
+    .style(any; @part) { background-color: green; }
+  }
+
+  #exercise {
+    .style(any; @part) { background-color: silver; }
+  }
+
+  #figure {
+    .style(any; @part) { background-color: blue; }
+    .caption(any; @part) { color: blue; }
+
+    // Complex example: a figure inside a `how-to` note
+    .style(any; @part; note; 'how-to') {
+      content: 'how-to>figure TEST1';
+    }
+    // Complex example: a figure inside a `how-to` note inside an example
+    // (think: `example > note.how-to > figure`)
+    .style(any; @part; example; note; 'how-to') {
+      content: 'example>note.how-to>figure TEST2';
+    }
+    // Complex example: a figure inside an `understanding` note inside an example
+    // (think: `note.understanding > example > figure`)
+    .style(any; @part; note; 'understanding'; example) {
+      content: 'note.understanding>example>figure TEST3';
+    }
+
+  }
+
+  #para { .style(any; @part) { color: black; } }
+  #term { .style(any; @part) { font-weight: bold; } }
+  // ... More types removed for brevity
+}
+
+
+
+
+//                           )       \   /      (
+//                          /|\      )\_/(     /|\
+// *                       / | \    (/\|/\)   / | \                      *
+// |'.____________________/__|__o____\'|'/___o__|__\___________________.'|
+// |                           '^'    \|/   '^'                          |
+// |                                   V                                 |
+// |           HERE BE DRAGONS!!!                                        |
+// |                                                                     |
+// | ._________________________________________________________________. |
+// |'               l    /\ /     \\            \ /\   l                '|
+// *                l  /   V       ))            V   \ l                 *
+//                  l/            //                  \l
+//                                V
+
+// Everything below should **NOT** change for different books so it can be considered "magic".
+
+
+// If you **do* need to change something in here it would probably be to:
+//
+// 1. Increase the maximum context length
+// 2. Add a new `type` of content or `part` (ie exercise, note, figure)
+
+// # Skeleton Code
+//
+// This code will "build" the skeleton and generate all permutations of `@contexts` for the slots.
+// The interesting bits are each content `@type`.
+//
+// There is a `.template-selector()` that **defines** the selector to match a CNXML element (`@type`)
+//
+// - for `c:note` or `c:example` it would be a `[data-type="foo"]`
+// - for `c:list` it would be a `ul, ol, [data-type="list"]`
+// - for `c:figure` it would be a `figure`
+//
+// There is a `.template-slots()` that defines all the slots **inside** a CNXML element
+//
+// - for `c:note` it would be a `.style()`, `.title()`.  and `.body()`
+// - for `c:exercise` it would be a `.style()`, `.title()`
+// - for `c:figure` it would be a `.style()`, `.title()` and `.caption()`
+
+// There are at least 2 files in here:
+//
+// - `skeleton-content-templates.less` defines all the content types and which slots they have
+// - `skeleton.less` actually generate all the skeleton selectors
+
+
+
+
+
+
+// `skeleton-content-templates.less`
+#skeleton {
+  #content {
+
+    // This namespace defines the following mixins:
+    //
+    // - `.children(@type)` : "returns" a list of valid child types
+    // - `.template-selector(@type; @depth; @part-contexts...)` : Generates the proper selector for this type
+    // - `.template-slots(@type; @part-contexts...)` : generates the proper slots for this type
+
+
+    // Prune the permutations in the skeleton-generation code (so we do not run out of memory)
+    // by restricting the set of children
+    .x-root-types() {
+      // From http://cnx.org/eip-help/content
+      @return: section,
+                example,
+                // code,
+                // preformat,
+                quote,
+                para,
+                definition,
+                figure,
+                note,
+                // media,
+                list,
+                // table,
+                // rule,
+                // equation,
+                exercise;
+    }
+    // From http://cnx.org/eip-help/note
+    .x-noteish-types() {
+      @return: para,
+              term,
+              // cite,
+              // cite-title,
+              // foreign,
+              // emphasis,
+              // sub,
+              // sup,
+              // code,
+              // preformat,
+              quote,
+              // note,
+              list,
+              // media,
+              // footnote,
+              // link,
+              // newline,
+              // space,
+              definition,
+              example,
+              figure,
+              // table,
+              // rule,
+              // equation,
+              exercise;
+    }
+    // From http://cnx.org/eip-help/para
+    .x-inline-types() {
+      @return: term,
+               // cite,
+               // cite-title,
+               // foreign,
+               // emphasis,
+               // sub,
+               // sup,
+               // code,
+               // preformat,
+               quote,
+               // note,
+               list;
+               // media,
+               // footnote,
+               // link,
+               // newline,
+               // space,
+               // definition, TODO: Should this remain an inline type?
+               // example, TODO: Should these remain an inline type?
+               // figure,
+               // table,
+               // rule,
+               // equation,
+               // exercise;
+    }
+
+    //.children(@any)       { @return: none; } // by default, no children
+    .children(none)       { .x-root-types(); }  // The root types
+    .children(section)    { .x-root-types(); }
+    .children(example)    { .x-root-types(); }
+    .children(problem)    { .x-root-types(); }
+    .children(solution)   { .x-root-types(); }
+    .children(note)       { .x-noteish-types(); }
+    .children(quote)      { .x-noteish-types(); }
+    .children(para)       { .x-inline-types(); }
+    .children(term)       { .x-inline-types(); }
+    .children(meaning)    { .x-inline-types(); } // Might need to be x-noteish-types
+    .children(exercise)   { @return: problem, solution; }
+    .children(definition) { @return: term, meaning, example, /*seealso*/; }
+    .children(figure)     { @return: figure /* , media, table, code */; }
+    .children(list)       { @return: list-item; }
+    .children(list-item)  { .x-inline-types(); }
+
+
+    // These define the selector for the `@type`
+    // `.x-template-helper` will augment the selector with a class depending on the value of `@kind`
+    // For most elements the selector will be `[data-type="@{type}"]` but for some things
+    // like lists and figures it may be `figure` or `ol, ul`.
+    .template-selector(@type; @depth; @rest...) when (@type=section),
+                                                  (@type=example),
+                                                  (@type=exercise),
+                                                  (@type=problem),
+                                                  (@type=solution),
+                                                  (@type=note),
+                                                  (@type=definition),
+                                                  (@type=term),
+                                                  (@type=meaning) {
+      //[data-type="@{type}"] {
+      .@{type} {
+        .x-template-helper(@arguments...);
+      }
+    }
+    .template-selector(figure; @rest...) {
+      figure {
+        // debug-template-outer-figure: '@rest=' @rest;
+        .x-template-helper(figure; @rest...);
+      }
+    }
+    .template-selector(para; @rest...) {
+      p { .x-template-helper(para; @rest...); }
+    }
+    .template-selector(quote; @rest...) {
+      blockquote { .x-template-helper(quote; @rest...); }
+    }
+    // Lists are special because they may contain a title. If they have a title
+    // then there is a special wrapper div since `ol` and `ul` cannot contain a title
+    .template-selector(list; @rest...) {
+      ul, ol, [data-type='list'] {
+        .x-template-helper(list; @rest...);
+      }
+    }
+    .template-selector(list-item; @rest...) {
+      li { .x-template-helper(list-item; @rest...); }
+    }
+
+
+    // ## Slots inside Content
+    // These describe the stricture of slots **inside** a `type` of content.
+    //
+    // - for notes these would be the title and body
+    // - for figures these would be the caption and title
+    // - for exercises these would be the title, problem, solutions, and commentary
+    .template-slots(example; @args...) {
+      #content>#example>.style(@args...);
+      #content>#example>.counters(@args...);
+
+      &::before {
+        #content>#example>.number(@args...);
+      }
+
+      //> [data-type='title'] {
+      > .title {
+        #content>#example>#title>.style(@args...);
+      }
+    }
+
+    .template-slots(exercise; @args...) {
+      #content>#exercise>.style(@args...);
+      #content>#exercise>.counters(@args...);
+
+      &::before {
+        #content>#exercise>.number(@args...);
+      }
+
+      //> [data-type='title'] {
+      > .title {
+        #content>#exercise>#title>.style(@args...);
+      }
+    }
+
+    .template-slots(problem; @args...) {
+      #content>#problem>.style(@args...);
+      #content>#problem>.counters(@args...);
+
+      &::before {
+        #content>#problem>.number(@args...);
+      }
+
+      //> [data-type='title'] {
+      > .title {
+        #content>#problem>#title>.style(@args...);
+      }
+    }
+
+    .template-slots(solution; @args...) {
+      #content>#solution>.style(@args...);
+      #content>#solution>.counters(@args...);
+
+      &::before {
+        #content>#solution>.number(@args...);
+      }
+
+      //> [data-type='title'] {
+      > .title {
+        #content>#solution>#title>.style(@args...);
+      }
+    }
+
+    .template-slots(figure; @args...) {
+      #content>#figure>.style(@args...);
+      #content>#figure>.counters(@args...);
+
+      //> [data-type='title'] {
+      > .title {
+        #content>#figure>#title>.style(@args...);
+      }
+
+      figcaption {
+        #content>#figure>.caption(@args...);
+        &::before { #content>#figure>.number(@args...); }
+      }
+    }
+
+    .template-slots(note; @args...) {
+      #content>#note>.style(@args...);
+      #content>#note>.counters(@args...);
+
+      //> [data-type='title'] {
+      > .title {
+        #content>#note>#title>.style(@args...);
+      }
+
+      &::before {
+        #content>#note>.number(@args...);
+      }
+    }
+
+    .template-slots(section; @args...) {
+      #content>#section>.style(@args...);
+      #content>#section>.counters(@args...);
+
+      &::before {
+        #content>#section>.number(@args...);
+      }
+
+      //> [data-type='title'] {
+      > .title {
+        #content>#section>#title>.style(@args...);
+      }
+    }
+
+    .template-slots(para; @args...) {
+      #content>#para>.style(@args...);
+      #content>#para>.counters(@args...);
+
+      &::before {
+        #content>#para>.number(@args...);
+      }
+
+      //> [data-type='title'] {
+      > .title {
+        #content>#para>#title>.style(@args...);
+      }
+    }
+
+    .template-slots(definition; @args...) { #content>#definition>.style(@args...); }
+    .template-slots(term; @args...)       { #content>#term>.style(@args...); }
+
+    .template-slots(meaning; @args...) {
+      #content>#meaning>.style(@args...);
+
+      //> [data-type='title'] {
+      > .title {
+        #content>#meaning>#title>.style(@args...);
+      }
+    }
+
+    .template-slots(quote; @args...) {
+      #content>#quote>.style(@args...);
+
+      //> [data-type='title'] {
+      > .title {
+        #content>#quote>#title>.style(@args...);
+      }
+    }
+
+    .template-slots(list; @args...) {
+      #content>#list>.style(@args...);
+
+      //> [data-type='title'] {
+      > .title {
+        #content>#list>#title>.style(@args...);
+      }
+    }
+
+    .template-slots(list-item; @args...) {
+      #content>#list>#item>.style(@args...);
+    }
+
+  }
+}
+
+
+
+
+
+
+
+// `skeleton.less`
+
+// This variable denotes the maximum length of `@contexts...`
+@contexts-max-depth: 2;
+
+#skeleton {
+
+  // Customize these for different elements
+  // These are the skeleton "snippet" describing the element and all the slots on it.
+  // .template-selector(@type; @depth; @kind; @part-and-contexts...) { }
+  // .template-slots(      @type; @depth; @kind; @part-and-contexts...) { }
+
+  // makes a different selector if `@kind` is `any` or if it is anything else
+  .x-template-helper(@type; @depth; any; @part-and-contexts...) {
+    .template-slots(@type; any; @part-and-contexts...);
+    // Recurse by appending the `@type` to the `@contexts...`
+    #skeleton>.build-children(@type; (@depth - 1); @part-and-contexts...; @type);
+  }
+  .x-template-helper(@type; @depth; @kind; @part-and-contexts...) when not (@kind = any) {
+    // `@kind` is a string but we need to un-string it to use it as a class name
+    @unstringed-kind: e(@kind);
+    &.@{unstringed-kind} {
+      .template-slots(@type; @kind; @part-and-contexts...);
+      // Recurse by appending both the `@type` and `@kind` to the `@contexts...`
+      #skeleton>.build-children(@type; (@depth - 1); @part-and-contexts...; @type; @kind);
+    }
+  }
+
+  .x-helper-base-types(@depth; @part-and-contexts) { } // base case
+  .x-helper-base-types(@depth; @part-and-contexts; none) { } // base case
+  .x-helper-base-types(@depth; @part-and-contexts; @type; @rest...) {
+    #skeleton>#content>.template-selector(@type; @depth; any; @part-and-contexts...);
+
+    // Loop for any custom `@kind`s
+    #content>.kinds(@type);
+    @kinds: @return;
+    .x-helper-custom-types(@depth; @part-and-contexts; @type; @kinds...);
+
+    // recurse
+    .x-helper-base-types(@depth; @part-and-contexts; @rest...);
+  }
+
+  .x-helper-custom-types(@depth; @part-and-contexts; @type) { } // base case
+  .x-helper-custom-types(@depth; @part-and-contexts; @type; none) { } // base case
+  .x-helper-custom-types(@depth; @part-and-contexts; @type; @kind; @rest...) {
+    // debug-custom-types: @type-and-kind;
+    #skeleton>#content>.template-selector(@type; @depth; @kind; @part-and-contexts...);
+    // recurse
+    .x-helper-custom-types(@depth; @part-and-contexts; @type; @rest...);
+  }
+
+  .build-children(@type; 0;      @part-and-contexts...) { } // base case
+  .build-children(@type; @depth; @part-and-contexts...) when (@depth > 0) {
+
+    //debug-build-children: 'depth=' @depth 'contexts=' @part-and-contexts;
+    #skeleton>#content>.children(@type);
+    @content-base-types: @return;
+    .x-helper-base-types  (@depth; @part-and-contexts; @content-base-types...);
+  }
+
+}
+
+
+
+// Skeleton code
+.build-part(@part) {
+  // Use the `none` type for root elements
+  #skeleton>.build-children(none; (@contexts-max-depth + 1); @part);
+}
+//.preface  { .build-part(preface); }
+.chapter  { .build-part(chapter); }
+//.appendix { .build-part(appendix); }
+
+
+/* ------------------------------------------ */
+/* ------------------------------------------ */

@@ -1,0 +1,6 @@
+#part {
+  .content-counter(@part;    @before; @after) { }
+  .content-counter(preface;  @before; @after) { content: @before @after; }
+  .content-counter(chapter;  @before; @after) { content: @before counter(chapter) '.' @after; }
+  .content-counter(appendix; @before; @after) { content: @before counter(appendix, upper-alpha) @after; }
+}
