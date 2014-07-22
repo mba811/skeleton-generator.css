@@ -15,7 +15,7 @@
 Everything in this directory should **NOT** change for different books so it can be considered "magic".
 
 
-If you **do* need to change something in here it would probably be to:
+If you **do** need to change something in here it would probably be to:
 
 1. Increase the maximum context length
 2. Add a new `type` of content or `part` (ie exercise, note, figure)
